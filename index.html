@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- ====== JUDUL TAB & FAVICON (ubah di sini) ====== -->
-  <title>Supervisi SMP IT Al Mubarok</title>
+  <title>Aplikasi Supervisi Kepala Sekolah</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
   <style>
@@ -774,10 +774,10 @@
      KONFIGURASI API (backend Google Apps Script)
      ============================================================ */
   // 1) Tempel URL Web App Apps Script Anda di sini (berakhiran /exec)
-  var API_URL = 'https://script.google.com/macros/s/AKfycbyrIEbSdTWKsNmHjZE6rpvU3wKljMGFj6k0R63ptr_Oun4qfiGn4_7_eYIUoB0-Ihm9/exec';
+  var API_URL = 'https://script.google.com/macros/s/GANTI_DENGAN_DEPLOYMENT_ID_ANDA/exec';
 
   // 2) Judul tab browser (juga bisa diubah di tag <title> di atas)
-  var APP_TITLE = 'Supervisi SMP IT Al Mubarok';
+  var APP_TITLE = 'Aplikasi Supervisi Kepala Sekolah';
   document.title = APP_TITLE;
 
   /* ============================================================
@@ -2884,6 +2884,93 @@
     document.addEventListener('DOMContentLoaded', build);
   })();
 
+  </script>
+  <!-- ====== TOMBOL BACK (browser / HP) ======
+       Sinkronkan riwayat browser dengan tampilan aplikasi: sidebar HP, modal,
+       sub-halaman (form supervisi/monitoring), lalu halaman menu -> Dashboard. -->
+  <script>
+  (function () {
+    var H = 0;            // kedalaman riwayat yang sudah kita buat
+    var busy = false;     // true saat menunggu history.go() selesai
+    var timer = null;
+
+    function $(id) { return document.getElementById(id); }
+    function shown(id, page) {
+      var el = $(id);
+      if (!el || el.style.display !== 'block') return false;
+      var sec = el.closest('.page');
+      return !!(sec && sec.classList.contains('active'));
+    }
+
+    // Daftar lapisan yang sedang terbuka, dari bawah ke atas.
+    function layers() {
+      var root = $('appRoot');
+      var L = [];
+      if (!root || root.style.display === 'none') return L;   // belum login
+      var act = document.querySelector('.page.active');
+      if (act && act.id !== 'page-dashboard') L.push({ t: 'page' });
+      if (shown('akWorkView'))     L.push({ t: 'ak' });
+      if (shown('mjLangkahForm'))  L.push({ t: 'mj' });
+      if (shown('moLangkahForm'))  L.push({ t: 'mo' });
+      document.querySelectorAll('.modal-overlay.open').forEach(function (m) { L.push({ t: 'modal', el: m }); });
+      var sb = document.querySelector('.sidebar');
+      if (window.innerWidth <= 760 && sb && sb.classList.contains('open')) L.push({ t: 'sidebar' });
+      return L;
+    }
+
+    function closeTop() {
+      var L = layers();
+      if (!L.length) return;
+      var top = L[L.length - 1];
+      if (top.t === 'sidebar') document.querySelector('.sidebar').classList.remove('open');
+      else if (top.t === 'modal') closeModal(top.el.id.replace(/Modal$/, ''));
+      else if (top.t === 'ak') akKembali();
+      else if (top.t === 'mj') mjGantiInstrumen();   // tetap tanya konfirmasi jika sudah ada isian
+      else if (top.t === 'mo') moGantiJenis();
+      else if (top.t === 'page') showPage('dashboard');
+    }
+
+    function reconcile() {
+      if (busy) return;
+      var D = layers().length;
+      try {
+        if (H < D) {
+          for (var i = H + 1; i <= D; i++) history.pushState({ d: i }, '');
+          H = D;
+        } else if (H > D) {
+          busy = true;
+          clearTimeout(timer);
+          timer = setTimeout(function () { busy = false; H = D; }, 800);  // jaga-jaga
+          history.go(D - H);
+        }
+      } catch (e) { busy = false; }
+    }
+
+    function schedule() { clearTimeout(schedule.t); schedule.t = setTimeout(reconcile, 30); }
+
+    window.addEventListener('popstate', function (e) {
+      var d = (e.state && e.state.d) || 0;
+      if (busy) {                // ini hasil history.go() dari kita sendiri
+        busy = false; clearTimeout(timer); H = d; reconcile(); return;
+      }
+      var userBack = d < H;
+      H = d;
+      if (userBack) closeTop();  // user menekan Back -> tutup lapisan teratas
+      schedule();                // rapikan riwayat (juga saat Forward / konfirmasi dibatalkan)
+    });
+
+    function init() {
+      try {
+        var d = (history.state && history.state.d) || 0;
+        if (d > 0 || !history.state) history.replaceState({ d: 0 }, '');
+      } catch (e) {}
+      H = 0;
+      var root = $('appRoot');
+      if (root) new MutationObserver(schedule).observe(root, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+      schedule();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  })();
   </script>
 </body>
 </html>
