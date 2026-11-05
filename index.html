@@ -1536,6 +1536,9 @@
       var input;
       if (f.tipe === 'guru') {
         input = '<select id="mjF_guru" onchange="mjPilihGuru()"><option value="">Memuat data guru...</option></select>';
+      } else if (f.tipe === 'select') {
+        input = '<select id="mjF_' + f.k + '"><option value="">-- Pilih --</option>' +
+          (f.opsi || []).map(function (o) { return '<option value="' + mjEsc(o) + '">' + mjEsc(o) + '</option>'; }).join('') + '</select>';
       } else if (f.tipe === 'date') {
         input = '<input type="date" id="mjF_tanggal" value="' + todayISO() + '">';
       } else {
@@ -1706,9 +1709,13 @@
     var body = document.getElementById('mjListBody');
     if (!list.length) { body.innerHTML = '<tr><td colspan="6" class="empty-state">Belum ada data</td></tr>'; return; }
     body.innerHTML = list.map(function (r) {
-      var objek = (r.Info && (r.Info.guru || r.Info.kepsek)) || '-';
+      var inf = r.Info || {};
+      var nama = inf.guru || inf.kepsek || '';
+      var objek = inf.disupervisi
+        ? '<b>' + mjEsc(inf.disupervisi) + '</b>' + (nama ? '<div style="font-size:12px;color:var(--text-muted,#64748b);">' + mjEsc(nama) + '</div>' : '')
+        : (nama ? mjEsc(nama) : '-');
       return '<tr><td>' + formatTanggal(r.Tanggal) + '</td>' +
-        '<td>' + r.Ikon + ' ' + mjEsc(r.NamaInstrumen) + '</td><td>' + mjEsc(objek) + '</td>' +
+        '<td>' + r.Ikon + ' ' + mjEsc(r.NamaInstrumen) + '</td><td>' + objek + '</td>' +
         '<td>' + (r.NilaiAkhir === null ? '-' : r.NilaiAkhir) + '</td>' +
         '<td><span class="badge ' + kategoriBadgeClass(r.Kategori) + '">' + mjEsc(r.Kategori || '-') + '</span></td>' +
         '<td style="white-space:nowrap;">' +
